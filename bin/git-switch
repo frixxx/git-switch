@@ -1,0 +1,38 @@
+#!/usr/bin/env zsh
+
+PLUGIN_DIRECTORY=${0:A:h}
+SCRIPT_NAME=$(basename "$0")
+
+# Check if git is installed
+if ! (( $+commands[git] )); then
+    echo "WARNING: 'git' command not found. Please install."
+    exit 1;
+fi
+
+# Check if directory is a git repository
+gitCheck="$(git rev-parse --is-inside-work-tree 2>&1;)"
+if [[ "$gitCheck" != "true" ]]; then
+  echo "This directory is not a git repository.";
+  exit 1;
+fi
+
+
+source $PLUGIN_DIRECTORY/../lib/functions.zsh
+
+if [[ -n "$1" && "$1" == "local" ]]; then
+  branches=()
+  while IFS='' read -r line; do branches+=("$line"); done < <(git branch -v --format "%(refname:short)")
+
+  selectAndCheckoutBranch $branches
+elif [[ -n "$1" && "$1" == "remote" ]]; then
+  branches=()
+  while IFS='' read -r line; do
+    if [[ "$line" != "origin/HEAD" ]]; then
+      branches+=("${line/origin\//}");
+    fi
+  done < <(git branch -r --format "%(refname:short)")
+
+  selectAndCheckoutBranch $branches
+else
+  __help
+fi
